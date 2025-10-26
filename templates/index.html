@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rostering System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .user-info {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .login-container h2 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #ebebeb;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .roster-table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .roster-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 1000px;
+        }
+
+        .roster-table th,
+        .roster-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .roster-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .roster-table th:first-child,
+        .roster-table th:nth-child(2) {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+        }
+
+        .roster-table th:nth-child(2) {
+            left: 200px;
+        }
+
+        .roster-table td:first-child {
+            position: sticky;
+            left: 0;
+            background: white;
+            font-weight: 500;
+            text-align: left;
+            min-width: 200px;
+        }
+
+        .roster-table td:nth-child(2) {
+            position: sticky;
+            left: 200px;
+            background: white;
+            min-width: 100px;
+        }
+
+        .roster-table tr:nth-child(even) td:first-child,
+        .roster-table tr:nth-child(even) td:nth-child(2) {
+            background: #f9f9f9;
+        }
+
+        .roster-table tr:hover {
+            background: #f0f7ff;
+        }
+
+        .shift-cell {
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 10px;
+            font-weight: 600;
+        }
+
+        .shift-cell:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .shift-D { background: #fff4cc; color: #856404; }
+        .shift-N, .shift-N\/O, .shift-N3 { background: #d4edda; color: #155724; }
+        .shift-O { background: #e2e3e5; color: #383d41; }
+        .shift-P\/L { background: #d1ecf1; color: #0c5460; }
+        .shift-S\/L { background: #f8d7da; color: #721c24; }
+        .shift-E\/L { background: #ff6b6b; color: white; }
+        .shift-TRG { background: #cfe2ff; color: #084298; }
+        .shift-C\/O { background: #ffc107; color: #000; }
+
+        .leave-applications {
+            margin-top: 20px;
+        }
+
+        .leave-card {
+            background: #f9f9f9;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .leave-card h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .leave-card p {
+            color: #666;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .leave-card .leave-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .status-pending { color: #ff9800; font-weight: 600; }
+        .status-approved { color: #4CAF50; font-weight: 600; }
+        .status-rejected { color: #f44336; font-weight: 600; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 15px;
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #667eea;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        select.shift-select {
+            padding: 8px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <h2>🔐 Rostering System Login</h2>
+        <div id="loginError" class="alert alert-error hidden"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+        </form>
+        <div style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-radius: 5px; font-size: 12px;">
+            <strong>Demo Credentials:</strong><br>
+            Admin: admin / aliyan123<br>
+            User: user / user123
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="container hidden">
+        <div class="header">
+            <h1>📅 Staff Rostering System</h1>
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="currentUser"></span>
+                </div>
+                <button class="btn btn-secondary" onclick="downloadExcel()">📥 Download Excel</button>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('roster')">📋 Roster</div>
+            <div class="tab" onclick="switchTab('leave')">📝 Leave Applications</div>
+            <div class="tab" onclick="switchTab('statistics')">📊 Statistics</div>
+        </div>
+
+        <!-- Roster Tab -->
+        <div id="rosterTab" class="tab-content active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Monthly Roster</h2>
+                <button class="btn btn-primary" onclick="refreshRoster()">🔄 Refresh</button>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fff4cc;"></div>
+                    <span>D - Day Shift</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d4edda;"></div>
+                    <span>N - Night Shift</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e2e3e5;"></div>
+                    <span>O - Off</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d1ecf1;"></div>
+                    <span>P/L - Planned Leave</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f8d7da;"></div>
+                    <span>S/L - Sick Leave</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #cfe2ff;"></div>
+                    <span>TRG - Training</span>
+                </div>
+            </div>
+
+            <div class="roster-table-container">
+                <table class="roster-table" id="rosterTable">
+                    <thead id="rosterHeader"></thead>
+                    <tbody id="rosterBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Leave Applications Tab -->
+        <div id="leaveTab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Leave Applications</h2>
+                <button class="btn btn-primary" onclick="openLeaveModal()">+ Apply Leave</button>
+            </div>
+
+            <div id="leaveApplications" class="leave-applications"></div>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div id="statisticsTab" class="tab-content">
+            <h2>Roster Statistics</h2>
+            <div class="stats-grid" id="statsGrid"></div>
+        </div>
+    </div>
+
+    <!-- Leave Application Modal -->
+    <div id="leaveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Apply for Leave</h3>
+                <span class="close" onclick="closeLeaveModal()">&times;</span>
+            </div>
+            <div id="leaveError" class="alert alert-error hidden"></div>
+            <form id="leaveForm">
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="leaveEmployee" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Leave Type</label>
+                    <select id="leaveType" required>
+                        <option value="Planned Leave">Planned Leave</option>
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Emergency Leave">Emergency Leave</option>
+                        <option value="Casual Leave">Casual Leave</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>From Date</label>
+                    <input type="date" id="fromDate" required>
+                </div>
+                <div class="form-group">
+                    <label>To Date</label>
+                    <input type="date" id="toDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <textarea id="leaveReason" rows="3" placeholder="Optional"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Application</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Shift Modal -->
+    <div id="editShiftModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Shift</h3>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <div id="editError" class="alert alert-error hidden"></div>
+            <div id="editShiftInfo" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;"></div>
+            <div class="form-group">
+                <label>Select Shift</label>
+                <select id="newShift" class="shift-select">
+                    <option value="D">D - Day Shift</option>
+                    <option value="N">N - Night Shift</option>
+                    <option value="N/O">N/O - Night/Off</option>
+                    <option value="O">O - Off</option>
+                    <option value="P/L">P/L - Planned Leave</option>
+                    <option value="S/L">S/L - Sick Leave</option>
+                    <option value="E/L">E/L - Emergency Leave</option>
+                    <option value="TRG">TRG - Training</option>
+                    <option value="C/O">C/O - Comp Off</option>
+                    <option value="N3">N3 - Night 3</option>
+                </select>
+            </div>
+            <button onclick="saveShiftEdit()" class="btn btn-primary" style="width: 100%;">Save Changes</button>
+        </div>
+    </div>
+
+    <script>
+        let currentRole = null;
+        let rosterData = null;
+        let editingCell = null;
+
+        // Check authentication on load
+        window.onload = async function() {
+            const response = await fetch('/check-auth');
+            const data = await response.json();
+            if (data.authenticated) {
+                currentRole = data.role;
+                showMainApp();
+            }
+        };
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                currentRole = data.role;
+                showMainApp();
+            } else {
+                showError('loginError', 'Invalid credentials. Please try again.');
+            }
+        });
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('currentUser').textContent = `${currentRole.toUpperCase()} User`;
+            loadRoster();
+        }
+
+        // Logout
+        async function logout() {
+            await fetch('/logout', { method: 'POST' });
+            location.reload();
+        }
+
+        // Load Roster
+        async function loadRoster() {
+            const response = await fetch('/get-roster');
+            rosterData = await response.json();
+            renderRoster();
+            renderLeaveApplications();
+            renderStatistics();
+        }
+
+        function refreshRoster() {
+            loadRoster();
+            showSuccessMessage('Roster refreshed succes
