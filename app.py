@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file, session
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import datetime, timedelta
+import calendar
 import os
 import json
 from collections import defaultdict
@@ -72,7 +73,7 @@ def initialize_data():
         today = datetime.now()
         year = today.year
         month = today.month
-        days_in_month = 31
+        days_in_month = calendar.monthrange(year, month)[1]  # Get actual days in month
         
         roster = {}
         
@@ -97,7 +98,8 @@ def initialize_data():
             'month': month,
             'leave_history': {},
             'pulled_staff': {},  # Track who was pulled and when
-            'compensatory_offs': {}  # Track comp offs owed
+            'compensatory_offs': {},  # Track comp offs owed
+            'archived_rosters': {}  # Store previous months
         }
         
         save_data(data)
@@ -307,7 +309,7 @@ def generate_excel(data):
     # Days in month
     year = data['year']
     month = data['month']
-    days_in_month = 31
+    days_in_month = calendar.monthrange(year, month)[1]  # Get actual days in month
     
     # Title row
     ws_roster.merge_cells('A1:B1')
@@ -560,6 +562,8 @@ def check_auth():
 @app.route('/get-roster')
 def get_roster():
     data = load_data()
+    # Add days_in_month to response
+    data['days_in_month'] = calendar.monthrange(data['year'], data['month'])[1]
     return jsonify(data)
 
 @app.route('/update-shift', methods=['POST'])
@@ -709,7 +713,7 @@ def add_employee():
     data['employees'].append(new_employee)
     
     # Initialize roster for this employee with base pattern
-    days_in_month = 31
+    days_in_month = calendar.monthrange(data['year'], data['month'])[1]
     emp_roster = []
     start_offset = len(data['employees']) % len(BASE_PATTERN)
     
@@ -964,7 +968,7 @@ def change_month_year():
         data['leave_applications'] = data['archived_rosters'][new_key]['leave_applications']
     else:
         # Generate new roster for this month
-        days_in_month = 31
+        days_in_month = calendar.monthrange(new_year, new_month)[1]
         roster = {}
         
         for idx, emp in enumerate(data['employees']):
@@ -996,7 +1000,7 @@ def change_month_year():
 @app.route('/get-all-shift-counts')
 def get_all_shift_counts():
     data = load_data()
-    days_in_month = 31
+    days_in_month = calendar.monthrange(data['year'], data['month'])[1]
     
     counts = []
     warnings = []

@@ -1020,6 +1020,8 @@
                 const response = await fetch('/get-roster');
                 rosterData = await response.json();
                 
+                console.log('Roster data loaded:', rosterData);
+                
                 renderRoster();
                 renderLeaveApplications();
                 renderStatistics();
@@ -1035,10 +1037,11 @@
                     document.getElementById('monthSelect').value = rosterData.month;
                     document.getElementById('yearInput').value = rosterData.year;
                     
-                    // Populate pull checker dates
+                    // Populate pull checker dates with actual days in month
+                    const daysInMonth = rosterData.days_in_month || 31;
                     const pullCheckerDate = document.getElementById('pullCheckerDate');
                     pullCheckerDate.innerHTML = '<option value="">-- Select Date --</option>';
-                    for (let day = 1; day <= 31; day++) {
+                    for (let day = 1; day <= daysInMonth; day++) {
                         const option = document.createElement('option');
                         option.value = day - 1;
                         option.textContent = `Day ${day} - ${monthNames[rosterData.month - 1]} ${day}, ${rosterData.year}`;
@@ -1046,13 +1049,14 @@
                     }
                     
                     // Load management data
+                    console.log('Loading management data...');
                     loadEmployeeManagement();
                     loadLeaveHistory();
                     loadShiftCounts();
                 }
             } catch(error) {
                 console.error('Error loading roster:', error);
-                alert('Error loading roster data');
+                alert('Error loading roster data: ' + error.message);
             }
         }
 
@@ -1069,11 +1073,12 @@
             headerRow.innerHTML = '';
             bodyRows.innerHTML = '';
 
-            // Create header
+            // Create header - use actual days in month from data
+            const daysInMonth = rosterData.days_in_month || 31;
+            
             const headerTR1 = document.createElement('tr');
             headerTR1.innerHTML = '<th rowspan="2">Name</th><th rowspan="2">Emp ID</th>';
             
-            const daysInMonth = 31;
             const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
             
             for (let day = 1; day <= daysInMonth; day++) {
@@ -1331,7 +1336,8 @@
             const dailyBody = document.getElementById('dailyStatsBody');
             dailyBody.innerHTML = '';
 
-            for (let day = 0; day < 31; day++) {
+            const daysInMonth = rosterData.days_in_month || 31;
+            for (let day = 0; day < daysInMonth; day++) {
                 let dayCount = 0, nightCount = 0, leaveCount = 0, offCount = 0;
                 
                 Object.values(rosterData.roster).forEach(shifts => {
@@ -1417,9 +1423,15 @@
             const month = document.getElementById('monthSelect').value;
             const year = document.getElementById('yearInput').value;
             
-            if (!confirm(`Switch to ${month}/${year}? Current roster will be saved.`)) return;
+            console.log('Changing to month:', month, 'year:', year);
+            
+            if (!confirm(`Switch to ${month}/${year}? Current roster will be saved.`)) {
+                console.log('Month change cancelled by user');
+                return;
+            }
             
             try {
+                console.log('Sending change-month-year request...');
                 const response = await fetch('/change-month-year', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1427,35 +1439,60 @@
                 });
                 
                 const data = await response.json();
+                console.log('Change month response:', data);
+                
                 if (data.success) {
                     showSuccessMessage(data.message);
-                    loadRoster();
+                    console.log('Reloading roster for new month...');
+                    await loadRoster();
+                    console.log('Month changed successfully');
                 } else {
                     alert('Error: ' + data.message);
+                    console.error('Failed to change month:', data.message);
                 }
             } catch(error) {
                 console.error('Error changing month/year:', error);
-                alert('Failed to change month/year');
+                alert('Failed to change month/year: ' + error.message);
             }
         }
 
         // Employee Management
         async function loadEmployeeManagement() {
-            const tbody = document.getElementById('employeeManagementBody');
-            tbody.innerHTML = '';
-            
-            rosterData.employees.forEach((emp, idx) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${idx + 1}</td>
-                    <td>${emp.name}</td>
-                    <td>${emp.emp_id}</td>
-                    <td>
-                        <button class="btn btn-danger" onclick="deleteEmployee('${emp.emp_id}', '${emp.name}')">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+            try {
+                console.log('loadEmployeeManagement called');
+                const tbody = document.getElementById('employeeManagementBody');
+                if (!tbody) {
+                    console.error('employeeManagementBody element not found!');
+                    return;
+                }
+                
+                tbody.innerHTML = '';
+                
+                if (!rosterData || !rosterData.employees) {
+                    console.error('No employee data available');
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No employee data available</td></tr>';
+                    return;
+                }
+                
+                console.log('Loading', rosterData.employees.length, 'employees');
+                
+                rosterData.employees.forEach((emp, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${idx + 1}</td>
+                        <td>${emp.name}</td>
+                        <td>${emp.emp_id}</td>
+                        <td>
+                            <button class="btn btn-danger" onclick="deleteEmployee('${emp.emp_id}', '${emp.name.replace(/'/g, "\\'")}')">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                console.log('Employee management loaded successfully');
+            } catch(error) {
+                console.error('Error in loadEmployeeManagement:', error);
+            }
         }
 
         function openAddEmployeeModal() {
@@ -1522,17 +1559,28 @@
         // Leave History Management
         async function loadLeaveHistory() {
             try {
+                console.log('loadLeaveHistory called');
                 const response = await fetch('/get-leave-history');
                 const data = await response.json();
                 
+                console.log('Leave history response:', data);
+                
                 if (data.success) {
                     const tbody = document.getElementById('leaveHistoryBody');
+                    if (!tbody) {
+                        console.error('leaveHistoryBody element not found!');
+                        return;
+                    }
+                    
                     tbody.innerHTML = '';
                     
                     if (data.history.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No leave history found</td></tr>';
+                        console.log('No leave history entries');
                         return;
                     }
+                    
+                    console.log('Loading', data.history.length, 'leave history entries');
                     
                     data.history.forEach(leave => {
                         const tr = document.createElement('tr');
@@ -1548,6 +1596,10 @@
                         `;
                         tbody.appendChild(tr);
                     });
+                    
+                    console.log('Leave history loaded successfully');
+                } else {
+                    console.error('Failed to load leave history:', data.message);
                 }
             } catch(error) {
                 console.error('Error loading leave history:', error);
@@ -1626,20 +1678,35 @@
         // Shift Count Monitoring
         async function loadShiftCounts() {
             try {
+                console.log('loadShiftCounts called');
                 const response = await fetch('/get-all-shift-counts');
                 const data = await response.json();
                 
+                console.log('Shift counts response:', data);
+                
                 if (data.success) {
                     const summary = document.getElementById('shiftWarningsSummary');
+                    if (!summary) {
+                        console.error('shiftWarningsSummary element not found!');
+                        return;
+                    }
+                    
                     if (data.total_warnings === 0) {
                         summary.innerHTML = '✅ All days have adequate staff (8 day + 8 night)';
                         summary.style.color = '#155724';
+                        console.log('No shift shortages detected');
                     } else {
                         summary.innerHTML = `⚠️ ${data.total_warnings} days have staff shortages!`;
                         summary.style.color = '#721c24';
+                        console.log(data.total_warnings, 'days with shortages');
                     }
                     
                     const details = document.getElementById('shiftCountDetails');
+                    if (!details) {
+                        console.error('shiftCountDetails element not found!');
+                        return;
+                    }
+                    
                     if (data.warnings.length > 0) {
                         details.innerHTML = '<h4 style="color: #856404; margin-top: 20px;">Days with Shortages:</h4>';
                         data.warnings.forEach(warning => {
@@ -1655,9 +1722,18 @@
                     } else {
                         details.innerHTML = '';
                     }
+                    
+                    console.log('Shift counts loaded successfully');
+                } else {
+                    console.error('Failed to load shift counts');
                 }
             } catch(error) {
                 console.error('Error loading shift counts:', error);
+                const summary = document.getElementById('shiftWarningsSummary');
+                if (summary) {
+                    summary.innerHTML = '❌ Error loading shift counts';
+                    summary.style.color = '#721c24';
+                }
             }
         }
 
