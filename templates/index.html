@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rostering System</title>
+    <title>Staff Rostering System</title>
     <style>
         * {
             margin: 0;
@@ -20,7 +19,7 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -35,6 +34,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .header h1 {
@@ -46,6 +47,7 @@
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .user-info {
@@ -152,6 +154,7 @@
             display: flex;
             background: #f5f5f5;
             border-bottom: 2px solid #e0e0e0;
+            overflow-x: auto;
         }
 
         .tab {
@@ -161,6 +164,7 @@
             color: #666;
             border-bottom: 3px solid transparent;
             transition: all 0.3s;
+            white-space: nowrap;
         }
 
         .tab:hover {
@@ -185,18 +189,20 @@
         .roster-table-container {
             overflow-x: auto;
             margin-top: 20px;
+            max-height: 600px;
+            overflow-y: auto;
         }
 
         .roster-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
-            min-width: 1000px;
+            min-width: 1200px;
         }
 
         .roster-table th,
         .roster-table td {
-            padding: 8px;
+            padding: 10px 8px;
             border: 1px solid #ddd;
             text-align: center;
         }
@@ -215,6 +221,7 @@
             position: sticky;
             left: 0;
             z-index: 20;
+            background: #667eea;
         }
 
         .roster-table th:nth-child(2) {
@@ -228,6 +235,7 @@
             font-weight: 500;
             text-align: left;
             min-width: 200px;
+            z-index: 5;
         }
 
         .roster-table td:nth-child(2) {
@@ -235,6 +243,7 @@
             left: 200px;
             background: white;
             min-width: 100px;
+            z-index: 5;
         }
 
         .roster-table tr:nth-child(even) td:first-child,
@@ -242,8 +251,8 @@
             background: #f9f9f9;
         }
 
-        .roster-table tr:hover {
-            background: #f0f7ff;
+        .roster-table tr:hover td {
+            background: #f0f7ff !important;
         }
 
         .shift-cell {
@@ -251,21 +260,34 @@
             transition: all 0.3s;
             padding: 10px;
             font-weight: 600;
+            font-size: 11px;
         }
 
         .shift-cell:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
         .shift-D { background: #fff4cc; color: #856404; }
-        .shift-N, .shift-N\/O, .shift-N3 { background: #d4edda; color: #155724; }
+        .shift-N { background: #d4edda; color: #155724; }
         .shift-O { background: #e2e3e5; color: #383d41; }
         .shift-P\/L { background: #d1ecf1; color: #0c5460; }
         .shift-S\/L { background: #f8d7da; color: #721c24; }
         .shift-E\/L { background: #ff6b6b; color: white; }
-        .shift-TRG { background: #cfe2ff; color: #084298; }
+        .shift-C\/L { background: #ffd7a8; color: #8b4513; }
         .shift-C\/O { background: #ffc107; color: #000; }
+        .shift-D\ \(OT\) { 
+            background: #FFE5B4; 
+            color: #FF4500; 
+            border: 2px solid #FF4500;
+            font-weight: 900;
+        }
+        .shift-N\ \(OT\) { 
+            background: #90EE90; 
+            color: #006400; 
+            border: 2px solid #006400;
+            font-weight: 900;
+        }
 
         .leave-applications {
             margin-top: 20px;
@@ -319,10 +341,12 @@
 
         .modal-content {
             background: white;
-            margin: 5% auto;
+            margin: 3% auto;
             padding: 30px;
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
             border-radius: 15px;
             animation: slideDown 0.3s;
         }
@@ -381,11 +405,11 @@
         }
 
         .legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
             margin: 20px 0;
-            padding: 15px;
+            padding: 20px;
             background: #f9f9f9;
             border-radius: 8px;
         }
@@ -393,19 +417,28 @@
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
         }
 
         .legend-color {
-            width: 30px;
-            height: 20px;
-            border-radius: 3px;
+            width: 40px;
+            height: 25px;
+            border-radius: 4px;
             border: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .legend-label {
+            font-size: 13px;
+            font-weight: 500;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
             margin: 20px 0;
         }
@@ -433,34 +466,72 @@
         }
 
         select.shift-select {
-            padding: 8px;
+            padding: 10px;
             border: 2px solid #667eea;
             border-radius: 5px;
             font-weight: 600;
             cursor: pointer;
+            font-size: 14px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .info-box h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #555;
+        }
+
+        .info-box ul li {
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .legend {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Login Screen -->
     <div id="loginScreen" class="login-container">
-        <h2>🔐 Rostering System Login</h2>
+        <h2>🔐 Staff Rostering System</h2>
         <div id="loginError" class="alert alert-error hidden"></div>
         <form id="loginForm">
             <div class="form-group">
                 <label>Username</label>
-                <input type="text" id="username" required>
+                <input type="text" id="username" required placeholder="Enter username">
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" id="password" required>
+                <input type="password" id="password" required placeholder="Enter password">
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
         </form>
         <div style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-radius: 5px; font-size: 12px;">
             <strong>Demo Credentials:</strong><br>
-            Admin: admin / aliyan123<br>
-            User: user / user123
+            👨‍💼 Admin: <code>admin</code> / <code>aliyan123</code><br>
+            👤 User: <code>user</code> / <code>user123</code>
         </div>
     </div>
 
@@ -481,40 +552,62 @@
             <div class="tab active" onclick="switchTab('roster')">📋 Roster</div>
             <div class="tab" onclick="switchTab('leave')">📝 Leave Applications</div>
             <div class="tab" onclick="switchTab('statistics')">📊 Statistics</div>
+            <div class="tab" onclick="switchTab('rules')">📖 Rules & Info</div>
         </div>
 
         <!-- Roster Tab -->
         <div id="rosterTab" class="tab-content active">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>Monthly Roster</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <h2>Monthly Roster - <span id="rosterMonth"></span></h2>
                 <button class="btn btn-primary" onclick="refreshRoster()">🔄 Refresh</button>
             </div>
 
             <div class="legend">
                 <div class="legend-item">
                     <div class="legend-color" style="background: #fff4cc;"></div>
-                    <span>D - Day Shift</span>
+                    <span class="legend-label">D - Day Shift</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #d4edda;"></div>
-                    <span>N - Night Shift</span>
+                    <span class="legend-label">N - Night Shift</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #e2e3e5;"></div>
-                    <span>O - Off</span>
+                    <span class="legend-label">O - Off</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFE5B4; border: 2px solid #FF4500;"></div>
+                    <span class="legend-label">D (OT) - Day + Overtime</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #90EE90; border: 2px solid #006400;"></div>
+                    <span class="legend-label">N (OT) - Night + Overtime</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #d1ecf1;"></div>
-                    <span>P/L - Planned Leave</span>
+                    <span class="legend-label">P/L - Planned Leave</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #f8d7da;"></div>
-                    <span>S/L - Sick Leave</span>
+                    <span class="legend-label">S/L - Sick Leave</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: #cfe2ff;"></div>
-                    <span>TRG - Training</span>
+                    <div class="legend-color" style="background: #ff6b6b;"></div>
+                    <span class="legend-label">E/L - Emergency Leave</span>
                 </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffd7a8;"></div>
+                    <span class="legend-label">C/L - Casual Leave</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <span class="legend-label">C/O - Comp Off</span>
+                </div>
+            </div>
+
+            <div class="info-box" id="adminNote" style="display: none;">
+                <h4>👨‍💼 Admin Note</h4>
+                <p>Click on any shift cell to edit it manually. Changes are saved immediately.</p>
             </div>
 
             <div class="roster-table-container">
@@ -527,9 +620,19 @@
 
         <!-- Leave Applications Tab -->
         <div id="leaveTab" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <h2>Leave Applications</h2>
                 <button class="btn btn-primary" onclick="openLeaveModal()">+ Apply Leave</button>
+            </div>
+
+            <div class="info-box">
+                <h4>📌 Leave Priority System</h4>
+                <ul>
+                    <li>Priority is calculated based on your leave history</li>
+                    <li>Employees with fewer recent leaves get higher priority</li>
+                    <li>Earlier applications receive bonus points</li>
+                    <li>Emergency leaves are processed immediately with automatic replacement</li>
+                </ul>
             </div>
 
             <div id="leaveApplications" class="leave-applications"></div>
@@ -539,6 +642,79 @@
         <div id="statisticsTab" class="tab-content">
             <h2>Roster Statistics</h2>
             <div class="stats-grid" id="statsGrid"></div>
+            
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">Daily Shift Distribution</h3>
+            <div class="roster-table-container" style="max-height: 400px;">
+                <table class="roster-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Day Shift</th>
+                            <th>Night Shift</th>
+                            <th>On Leave</th>
+                            <th>Off</th>
+                            <th>Total Working</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dailyStatsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Rules Tab -->
+        <div id="rulesTab" class="tab-content">
+            <h2>System Rules & Information</h2>
+            
+            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+                <h4>📋 Shift Pattern Rules</h4>
+                <ul>
+                    <li><strong>Base Pattern:</strong> Day → Night → Off → Off (repeating)</li>
+                    <li><strong>Pulled after 1st Off:</strong> Day → Night → Night(OT) → Off → Day</li>
+                    <li><strong>Pulled after 2nd Off:</strong> Day → Night → Off → Day(OT) → Day</li>
+                    <li>8 people required in Day shift, 8 people required in Night shift</li>
+                </ul>
+            </div>
+
+            <div class="info-box" style="background: #e3f2fd; border-left-color: #2196F3;">
+                <h4>🔄 Replacement Rules</h4>
+                <ul>
+                    <li>Only employees who had Day shift or Off on previous day can be pulled</li>
+                    <li>Employees who had Night shift previous day CANNOT be pulled</li>
+                    <li>Pulled employees receive overtime pay or compensatory off</li>
+                    <li>System automatically finds best replacement based on recent pull history</li>
+                </ul>
+            </div>
+
+            <div class="info-box" style="background: #f8d7da; border-left-color: #f44336;">
+                <h4>📝 Leave Application Rules</h4>
+                <ul>
+                    <li><strong>Planned Leave:</strong> Apply at least 7 days in advance</li>
+                    <li><strong>Sick Leave:</strong> Emergency leave with automatic replacement</li>
+                    <li><strong>Emergency Leave:</strong> Immediate processing with automatic replacement</li>
+                    <li><strong>Priority System:</strong> Based on leave history and application time</li>
+                    <li>Admin approval required for all leave types</li>
+                </ul>
+            </div>
+
+            <div class="info-box" style="background: #d4edda; border-left-color: #4CAF50;">
+                <h4>👥 User Roles</h4>
+                <ul>
+                    <li><strong>Admin:</strong> Can view, edit roster, approve/reject leaves, make manual changes</li>
+                    <li><strong>User:</strong> Can view roster and apply for leaves</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <h4>📊 Excel Export</h4>
+                <ul>
+                    <li><strong>Sheet 1:</strong> Main Roster with color coding</li>
+                    <li><strong>Sheet 2:</strong> Leave Applications with status</li>
+                    <li><strong>Sheet 3:</strong> Daily Statistics</li>
+                    <li><strong>Sheet 4:</strong> Overtime & Compensatory Off Tracking</li>
+                    <li><strong>Sheet 5:</strong> Legend & Shift Codes</li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -558,9 +734,9 @@
                 <div class="form-group">
                     <label>Leave Type</label>
                     <select id="leaveType" required>
-                        <option value="Planned Leave">Planned Leave</option>
-                        <option value="Sick Leave">Sick Leave</option>
-                        <option value="Emergency Leave">Emergency Leave</option>
+                        <option value="Planned Leave">Planned Leave (Apply 7+ days advance)</option>
+                        <option value="Sick Leave">Sick Leave (Emergency)</option>
+                        <option value="Emergency Leave">Emergency Leave (Immediate)</option>
                         <option value="Casual Leave">Casual Leave</option>
                     </select>
                 </div>
@@ -573,8 +749,8 @@
                     <input type="date" id="toDate" required>
                 </div>
                 <div class="form-group">
-                    <label>Reason</label>
-                    <textarea id="leaveReason" rows="3" placeholder="Optional"></textarea>
+                    <label>Reason (Optional)</label>
+                    <textarea id="leaveReason" rows="3" placeholder="Enter reason for leave"></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Application</button>
             </form>
@@ -595,14 +771,14 @@
                 <select id="newShift" class="shift-select">
                     <option value="D">D - Day Shift</option>
                     <option value="N">N - Night Shift</option>
-                    <option value="N/O">N/O - Night/Off</option>
                     <option value="O">O - Off</option>
+                    <option value="D (OT)">D (OT) - Day Shift + Overtime</option>
+                    <option value="N (OT)">N (OT) - Night Shift + Overtime</option>
                     <option value="P/L">P/L - Planned Leave</option>
                     <option value="S/L">S/L - Sick Leave</option>
                     <option value="E/L">E/L - Emergency Leave</option>
-                    <option value="TRG">TRG - Training</option>
-                    <option value="C/O">C/O - Comp Off</option>
-                    <option value="N3">N3 - Night 3</option>
+                    <option value="C/L">C/L - Casual Leave</option>
+                    <option value="C/O">C/O - Compensatory Off</option>
                 </select>
             </div>
             <button onclick="saveShiftEdit()" class="btn btn-primary" style="width: 100%;">Save Changes</button>
@@ -616,108 +792,56 @@
 
         // Check authentication on load
         window.onload = async function() {
-            console.log('=== PAGE LOADED - CHECKING AUTH ===');
             try {
                 const response = await fetch('/check-auth');
-                console.log('Auth check response status:', response.status);
-                
                 const data = await response.json();
-                console.log('Auth check data:', data);
                 
                 if (data.authenticated) {
-                    console.log('✅ User already authenticated as:', data.role);
                     currentRole = data.role;
                     showMainApp();
-                } else {
-                    console.log('ℹ️ User not authenticated - showing login page');
                 }
             } catch(error) {
-                console.error('❌ Auth check error:', error);
-                console.log('Showing login page due to error');
+                console.error('Auth check error:', error);
             }
         };
 
         // Login
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            console.log('=== LOGIN ATTEMPT STARTED ===');
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            
-            console.log('Username:', username);
-            console.log('Password length:', password.length);
 
             try {
-                console.log('Sending login request...');
                 const response = await fetch('/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
 
-                console.log('Response status:', response.status);
-                console.log('Response ok:', response.ok);
-
-                if (!response.ok) {
-                    throw new Error('Login request failed with status: ' + response.status);
-                }
-
                 const data = await response.json();
-                console.log('Login response data:', data);
                 
                 if (data.success) {
-                    console.log('✅ LOGIN SUCCESS!');
                     currentRole = data.role;
-                    console.log('Current role set to:', currentRole);
-                    console.log('Calling showMainApp...');
                     showMainApp();
                 } else {
-                    console.log('❌ LOGIN FAILED:', data.message);
-                    showError('loginError', data.message || 'Invalid credentials. Please try again.');
+                    showError('loginError', data.message || 'Invalid credentials');
                 }
             } catch(error) {
-                console.error('❌ LOGIN ERROR:', error);
-                showError('loginError', 'Connection error: ' + error.message + '\n\nMake sure Flask server is running at http://localhost:5000');
+                showError('loginError', 'Connection error. Please ensure server is running.');
             }
         });
 
         function showMainApp() {
-            console.log('=== SHOWING MAIN APP ===');
-            try {
-                console.log('Hiding login screen...');
-                const loginScreen = document.getElementById('loginScreen');
-                if (loginScreen) {
-                    loginScreen.classList.add('hidden');
-                    console.log('✅ Login screen hidden');
-                } else {
-                    console.error('❌ loginScreen element not found!');
-                }
-                
-                console.log('Showing main app...');
-                const mainApp = document.getElementById('mainApp');
-                if (mainApp) {
-                    mainApp.classList.remove('hidden');
-                    console.log('✅ Main app shown');
-                } else {
-                    console.error('❌ mainApp element not found!');
-                }
-                
-                console.log('Setting user info...');
-                const userInfo = document.getElementById('currentUser');
-                if (userInfo) {
-                    userInfo.textContent = `${currentRole.toUpperCase()} User`;
-                    console.log('✅ User info set:', currentRole);
-                } else {
-                    console.error('❌ currentUser element not found!');
-                }
-                
-                console.log('Loading roster data...');
-                loadRoster();
-            } catch(error) {
-                console.error('❌ ERROR in showMainApp:', error);
-                alert('ERROR: Failed to show main app!\n\n' + error.message + '\n\nCheck console (F12) for details.');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('currentUser').textContent = `${currentRole.toUpperCase()} User`;
+            
+            if (currentRole === 'admin') {
+                document.getElementById('adminNote').style.display = 'block';
             }
+            
+            loadRoster();
         }
 
         // Logout
@@ -730,21 +854,20 @@
         async function loadRoster() {
             try {
                 const response = await fetch('/get-roster');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch roster: ' + response.status);
-                }
                 rosterData = await response.json();
-                
-                if (!rosterData || !rosterData.employees) {
-                    throw new Error('Invalid roster data received');
-                }
                 
                 renderRoster();
                 renderLeaveApplications();
                 renderStatistics();
+                
+                // Update month display
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+                document.getElementById('rosterMonth').textContent = 
+                    `${monthNames[rosterData.month - 1]} ${rosterData.year}`;
             } catch(error) {
                 console.error('Error loading roster:', error);
-                alert('Error loading roster data: ' + error.message + '\n\nCheck if Flask is running and check console (F12).');
+                alert('Error loading roster data');
             }
         }
 
@@ -755,68 +878,59 @@
 
         // Render Roster Table
         function renderRoster() {
-            try {
-                const headerRow = document.getElementById('rosterHeader');
-                const bodyRows = document.getElementById('rosterBody');
-                
-                if (!headerRow || !bodyRows) {
-                    throw new Error('Roster table elements not found');
-                }
-                
-                // Clear existing content
-                headerRow.innerHTML = '';
-                bodyRows.innerHTML = '';
+            const headerRow = document.getElementById('rosterHeader');
+            const bodyRows = document.getElementById('rosterBody');
+            
+            headerRow.innerHTML = '';
+            bodyRows.innerHTML = '';
 
-                if (!rosterData || !rosterData.employees || !rosterData.roster) {
-                    throw new Error('Invalid roster data structure');
-                }
+            // Create header
+            const headerTR1 = document.createElement('tr');
+            headerTR1.innerHTML = '<th rowspan="2">Name</th><th rowspan="2">Emp ID</th>';
+            
+            const daysInMonth = 31;
+            const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                headerTR1.innerHTML += `<th>${day}</th>`;
+            }
+            headerRow.appendChild(headerTR1);
 
-                // Create header
-                const headerTR = document.createElement('tr');
-                headerTR.innerHTML = '<th>Name</th><th>Emp ID</th>';
-                
-                const daysInMonth = 31;
-                const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-                
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dayName = dayNames[(day - 1) % 7];
-                    headerTR.innerHTML += `<th>${day}<br><small>${dayName}</small></th>`;
-                }
-                headerRow.appendChild(headerTR);
+            const headerTR2 = document.createElement('tr');
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayName = dayNames[(day - 1) % 7];
+                headerTR2.innerHTML += `<th><small>${dayName}</small></th>`;
+            }
+            headerRow.appendChild(headerTR2);
 
-                // Create body rows
-                rosterData.employees.forEach(emp => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${emp.name}</td><td>${emp.emp_id}</td>`;
+            // Create body rows
+            rosterData.employees.forEach(emp => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${emp.name}</td><td>${emp.emp_id}</td>`;
+                
+                const empRoster = rosterData.roster[emp.emp_id] || [];
+                for (let day = 0; day < daysInMonth; day++) {
+                    const shift = empRoster[day] || '';
+                    const shiftClass = shift.replace(/\//g, '\\/').replace(/\s/g, '\\ ').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+                    const td = document.createElement('td');
+                    td.className = `shift-cell shift-${shiftClass}`;
+                    td.textContent = shift;
+                    td.dataset.empId = emp.emp_id;
+                    td.dataset.dateIdx = day;
+                    td.dataset.empName = emp.name;
                     
-                    const empRoster = rosterData.roster[emp.emp_id] || [];
-                    for (let day = 0; day < daysInMonth; day++) {
-                        const shift = empRoster[day] || '';
-                        const shiftClass = shift.replace(/\//g, '\\/').replace(/\s/g, '');
-                        const td = document.createElement('td');
-                        td.className = `shift-cell shift-${shiftClass}`;
-                        td.textContent = shift;
-                        td.dataset.empId = emp.emp_id;
-                        td.dataset.dateIdx = day;
-                        td.dataset.empName = emp.name;
-                        
-                        if (currentRole === 'admin') {
-                            td.onclick = function() {
-                                openEditModal(emp.emp_id, emp.name, day + 1, shift);
-                            };
-                        }
-                        
-                        tr.appendChild(td);
+                    if (currentRole === 'admin') {
+                        td.onclick = function() {
+                            openEditModal(emp.emp_id, emp.name, day + 1, shift);
+                        };
+                        td.style.cursor = 'pointer';
                     }
                     
-                    bodyRows.appendChild(tr);
-                });
+                    tr.appendChild(td);
+                }
                 
-                console.log('Roster rendered successfully');
-            } catch(error) {
-                console.error('Error rendering roster:', error);
-                alert('Error displaying roster: ' + error.message);
-            }
+                bodyRows.appendChild(tr);
+            });
         }
 
         // Open Edit Modal
@@ -872,10 +986,10 @@
                 select.appendChild(option);
             });
             
-            // Set default dates
             const today = new Date();
             document.getElementById('fromDate').value = today.toISOString().split('T')[0];
             document.getElementById('toDate').value = today.toISOString().split('T')[0];
+            document.getElementById('fromDate').min = today.toISOString().split('T')[0];
             
             document.getElementById('leaveModal').style.display = 'block';
         }
@@ -908,7 +1022,7 @@
             if (data.success) {
                 closeLeaveModal();
                 loadRoster();
-                showSuccessMessage('Leave application submitted successfully!');
+                showSuccessMessage(`Leave application submitted! Priority Score: ${data.priority}`);
             } else {
                 showError('leaveError', data.message);
             }
@@ -921,6 +1035,13 @@
 
             const leaves = rosterData.leave_applications || [];
             
+            // Sort by priority (highest first) and status
+            leaves.sort((a, b) => {
+                if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+                if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+                return b.priority - a.priority;
+            });
+
             if (leaves.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No leave applications found.</p>';
                 return;
@@ -931,15 +1052,22 @@
                 card.className = 'leave-card';
                 
                 let statusClass = 'status-pending';
-                if (leave.status === 'Approved') statusClass = 'status-approved';
-                if (leave.status === 'Rejected') statusClass = 'status-rejected';
+                let statusIcon = '⏳';
+                if (leave.status === 'Approved') {
+                    statusClass = 'status-approved';
+                    statusIcon = '✅';
+                }
+                if (leave.status === 'Rejected') {
+                    statusClass = 'status-rejected';
+                    statusIcon = '❌';
+                }
 
                 card.innerHTML = `
                     <h4>${leave.emp_name} - ${leave.leave_type}</h4>
                     <p><strong>Employee ID:</strong> ${leave.emp_id}</p>
                     <p><strong>Duration:</strong> ${leave.from_date} to ${leave.to_date}</p>
-                    <p><strong>Status:</strong> <span class="${statusClass}">${leave.status}</span></p>
-                    <p><strong>Priority Score:</strong> ${leave.priority}</p>
+                    <p><strong>Status:</strong> ${statusIcon} <span class="${statusClass}">${leave.status}</span></p>
+                    <p><strong>Priority Score:</strong> ${leave.priority} (Higher = Better chance)</p>
                     <p><strong>Applied:</strong> ${leave.applied_date}</p>
                     ${leave.reason ? `<p><strong>Reason:</strong> ${leave.reason}</p>` : ''}
                 `;
@@ -959,6 +1087,8 @@
         }
 
         async function approveLeave(leaveId, action) {
+            if (!confirm(`Are you sure you want to ${action} this leave application?`)) return;
+
             const response = await fetch('/approve-leave', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -980,6 +1110,14 @@
             const totalLeaves = rosterData.leave_applications.length;
             const pendingLeaves = rosterData.leave_applications.filter(l => l.status === 'Pending').length;
             const approvedLeaves = rosterData.leave_applications.filter(l => l.status === 'Approved').length;
+            
+            // Count total overtime shifts
+            let totalOT = 0;
+            Object.values(rosterData.roster).forEach(shifts => {
+                shifts.forEach(shift => {
+                    if (shift.includes('OT')) totalOT++;
+                });
+            });
 
             container.innerHTML = `
                 <div class="stat-card">
@@ -998,7 +1136,44 @@
                     <h3>${approvedLeaves}</h3>
                     <p>Approved Leaves</p>
                 </div>
+                <div class="stat-card">
+                    <h3>${totalOT}</h3>
+                    <p>Overtime Shifts</p>
+                </div>
             `;
+
+            // Render daily statistics table
+            const dailyBody = document.getElementById('dailyStatsBody');
+            dailyBody.innerHTML = '';
+
+            for (let day = 0; day < 31; day++) {
+                let dayCount = 0, nightCount = 0, leaveCount = 0, offCount = 0;
+                
+                Object.values(rosterData.roster).forEach(shifts => {
+                    if (day < shifts.length) {
+                        const shift = shifts[day];
+                        if (shift.includes('D')) dayCount++;
+                        else if (shift.includes('N') && !shift.includes('D')) nightCount++;
+                        else if (shift.includes('/L')) leaveCount++;
+                        else if (shift === 'O' || shift.includes('C/O')) offCount++;
+                    }
+                });
+
+                const date = new Date(rosterData.year, rosterData.month - 1, day + 1);
+                const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${day + 1}</td>
+                    <td>${dayName}</td>
+                    <td>${dayCount}</td>
+                    <td>${nightCount}</td>
+                    <td>${leaveCount}</td>
+                    <td>${offCount}</td>
+                    <td>${dayCount + nightCount}</td>
+                `;
+                dailyBody.appendChild(tr);
+            }
         }
 
         // Download Excel
@@ -1033,6 +1208,7 @@
             alert.style.right = '20px';
             alert.style.zIndex = '10000';
             alert.style.minWidth = '300px';
+            alert.style.maxWidth = '500px';
             document.body.appendChild(alert);
             
             setTimeout(() => {
