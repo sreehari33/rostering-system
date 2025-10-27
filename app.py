@@ -8,6 +8,12 @@ import json
 app = Flask(__name__)
 app.secret_key = 'rostering_secret_key_2025'
 
+# Session configuration for production (Render)
+app.config['SESSION_COOKIE_SECURE'] = True  # Required for HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+
 DATA_FILE = 'roster_data.json'
 EXCEL_FILE = 'roster.xlsx'
 
@@ -316,16 +322,38 @@ def generate_excel(data):
 def index():
     return render_template('index.html')
 
+@app.route('/diagnostic')
+def diagnostic():
+    return render_template('diagnostic.html')
+
 @app.route('/login', methods=['POST'])
 def login():
-    username = request.json.get('username')
-    password = request.json.get('password')
-    
-    if username in CREDENTIALS and CREDENTIALS[username] == password:
-        session['user'] = username
-        session['role'] = username
-        return jsonify({'success': True, 'role': username})
-    return jsonify({'success': False, 'message': 'Invalid credentials'})
+    print("\n=== LOGIN REQUEST RECEIVED ===")
+    try:
+        data = request.json
+        print(f"Request data: {data}")
+        
+        username = data.get('username')
+        password = data.get('password')
+        print(f"Username: {username}")
+        print(f"Password provided: {'Yes' if password else 'No'}")
+        
+        if username in CREDENTIALS and CREDENTIALS[username] == password:
+            print(f"✅ Credentials valid for user: {username}")
+            session['user'] = username
+            session['role'] = username
+            print(f"Session set - user: {session['user']}, role: {session['role']}")
+            response = jsonify({'success': True, 'role': username})
+            print(f"Sending response: {response.get_json()}")
+            return response
+        else:
+            print(f"❌ Invalid credentials for user: {username}")
+            return jsonify({'success': False, 'message': 'Invalid credentials'})
+    except Exception as e:
+        print(f"❌ LOGIN ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Server error: {str(e)}'})
 
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -335,8 +363,12 @@ def logout():
 
 @app.route('/check-auth')
 def check_auth():
+    print("\n=== CHECK AUTH REQUEST ===")
+    print(f"Session contents: {dict(session)}")
     if 'user' in session:
+        print(f"✅ User authenticated: {session['user']}, role: {session['role']}")
         return jsonify({'authenticated': True, 'role': session['role']})
+    print("❌ No user in session - not authenticated")
     return jsonify({'authenticated': False})
 
 @app.route('/get-roster')
