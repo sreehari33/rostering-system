@@ -57,6 +57,15 @@
             font-size: 14px;
         }
 
+        .user-info select, .user-info input {
+            background: white;
+            color: #333;
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+
         .btn {
             padding: 10px 20px;
             border: none;
@@ -540,6 +549,23 @@
         <div class="header">
             <h1>📅 Staff Rostering System</h1>
             <div class="header-right">
+                <div class="user-info" id="monthYearSelector" style="display: none;">
+                    <select id="monthSelect" onchange="changeMonthYear()">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <input type="number" id="yearInput" min="2024" max="2030" value="2025" onchange="changeMonthYear()" style="width: 80px; padding: 5px; margin-left: 5px;">
+                </div>
                 <div class="user-info">
                     <span id="currentUser"></span>
                 </div>
@@ -552,6 +578,8 @@
             <div class="tab active" onclick="switchTab('roster')">📋 Roster</div>
             <div class="tab" onclick="switchTab('leave')">📝 Leave Applications</div>
             <div class="tab" onclick="switchTab('statistics')">📊 Statistics</div>
+            <div class="tab" onclick="switchTab('management')" id="managementTab" style="display: none;">⚙️ Management</div>
+            <div class="tab" onclick="switchTab('pullChecker')" id="pullCheckerTab" style="display: none;">🔍 Pull Checker</div>
             <div class="tab" onclick="switchTab('rules')">📖 Rules & Info</div>
         </div>
 
@@ -660,6 +688,81 @@
                     <tbody id="dailyStatsBody"></tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- Management Tab -->
+        <div id="managementTab" class="tab-content">
+            <h2>System Management</h2>
+            
+            <!-- Shift Count Monitor -->
+            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+                <h4>⚠️ Shift Count Monitor</h4>
+                <p id="shiftWarningsSummary">Loading shift counts...</p>
+                <button class="btn btn-secondary" onclick="loadShiftCounts()">🔄 Refresh Counts</button>
+            </div>
+            <div id="shiftCountDetails" style="margin-top: 20px;"></div>
+
+            <hr style="margin: 30px 0;">
+
+            <!-- Employee Management -->
+            <h3>👥 Employee Management</h3>
+            <button class="btn btn-primary" onclick="openAddEmployeeModal()" style="margin: 15px 0;">+ Add New Employee</button>
+            
+            <div class="roster-table-container" style="max-height: 400px;">
+                <table class="roster-table">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Employee Name</th>
+                            <th>Employee ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeManagementBody"></tbody>
+                </table>
+            </div>
+
+            <hr style="margin: 30px 0;">
+
+            <!-- Leave History Management -->
+            <h3>📜 Leave History Management</h3>
+            <button class="btn btn-primary" onclick="openAddLeaveHistoryModal()" style="margin: 15px 0;">+ Add Leave History</button>
+            
+            <div class="roster-table-container" style="max-height: 400px;">
+                <table class="roster-table">
+                    <thead>
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>Employee ID</th>
+                            <th>From Date</th>
+                            <th>To Date</th>
+                            <th>Leave Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaveHistoryBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pull Checker Tab -->
+        <div id="pullCheckerTab" class="tab-content">
+            <h2>🔍 Pull Eligibility Checker</h2>
+            
+            <div class="info-box">
+                <h4>How to Use</h4>
+                <p>Select a date to see which employees can be pulled for emergency shifts and which cannot. The system will show you the reason for each employee's eligibility status.</p>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <label style="font-weight: 600; margin-right: 10px;">Select Date to Check:</label>
+                <select id="pullCheckerDate" onchange="checkPullEligibility()" style="padding: 10px; font-size: 14px; border: 2px solid #667eea; border-radius: 5px;">
+                    <!-- Will be populated with dates -->
+                </select>
+                <button class="btn btn-primary" onclick="checkPullEligibility()" style="margin-left: 10px;">Check Eligibility</button>
+            </div>
+
+            <div id="pullEligibilityResults"></div>
         </div>
 
         <!-- Rules Tab -->
@@ -785,6 +888,63 @@
         </div>
     </div>
 
+    <!-- Add Employee Modal -->
+    <div id="addEmployeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Employee</h3>
+                <span class="close" onclick="closeAddEmployeeModal()">&times;</span>
+            </div>
+            <div id="addEmployeeError" class="alert alert-error hidden"></div>
+            <form id="addEmployeeForm">
+                <div class="form-group">
+                    <label>Employee Name *</label>
+                    <input type="text" id="newEmployeeName" required placeholder="e.g., John Doe (A320)">
+                </div>
+                <div class="form-group">
+                    <label>Employee ID *</label>
+                    <input type="text" id="newEmployeeId" required placeholder="e.g., 85012345">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Add Employee</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Leave History Modal -->
+    <div id="addLeaveHistoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Leave History</h3>
+                <span class="close" onclick="closeAddLeaveHistoryModal()">&times;</span>
+            </div>
+            <div id="addLeaveHistoryError" class="alert alert-error hidden"></div>
+            <form id="addLeaveHistoryForm">
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="leaveHistoryEmployee" required></select>
+                </div>
+                <div class="form-group">
+                    <label>From Date</label>
+                    <input type="date" id="leaveHistoryFromDate" required>
+                </div>
+                <div class="form-group">
+                    <label>To Date</label>
+                    <input type="date" id="leaveHistoryToDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Leave Type</label>
+                    <select id="leaveHistoryType" required>
+                        <option value="Planned Leave">Planned Leave</option>
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Emergency Leave">Emergency Leave</option>
+                        <option value="Casual Leave">Casual Leave</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Add to History</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentRole = null;
         let rosterData = null;
@@ -839,6 +999,10 @@
             
             if (currentRole === 'admin') {
                 document.getElementById('adminNote').style.display = 'block';
+                document.getElementById('managementTab').style.display = 'block';
+                document.getElementById('pullCheckerTab').style.display = 'block';
+                document.getElementById('monthYearSelector').style.display = 'flex';
+                document.getElementById('monthYearSelector').style.alignItems = 'center';
             }
             
             loadRoster();
@@ -860,11 +1024,32 @@
                 renderLeaveApplications();
                 renderStatistics();
                 
-                // Update month display
+                // Update month/year selector
                 const monthNames = ["January", "February", "March", "April", "May", "June",
                     "July", "August", "September", "October", "November", "December"];
                 document.getElementById('rosterMonth').textContent = 
                     `${monthNames[rosterData.month - 1]} ${rosterData.year}`;
+                
+                // Update selectors if admin
+                if (currentRole === 'admin') {
+                    document.getElementById('monthSelect').value = rosterData.month;
+                    document.getElementById('yearInput').value = rosterData.year;
+                    
+                    // Populate pull checker dates
+                    const pullCheckerDate = document.getElementById('pullCheckerDate');
+                    pullCheckerDate.innerHTML = '<option value="">-- Select Date --</option>';
+                    for (let day = 1; day <= 31; day++) {
+                        const option = document.createElement('option');
+                        option.value = day - 1;
+                        option.textContent = `Day ${day} - ${monthNames[rosterData.month - 1]} ${day}, ${rosterData.year}`;
+                        pullCheckerDate.appendChild(option);
+                    }
+                    
+                    // Load management data
+                    loadEmployeeManagement();
+                    loadLeaveHistory();
+                    loadShiftCounts();
+                }
             } catch(error) {
                 console.error('Error loading roster:', error);
                 alert('Error loading roster data');
@@ -1224,6 +1409,373 @@
                 event.target.style.display = 'none';
             }
         };
+
+        // ===== NEW FEATURES =====
+
+        // Month/Year Change
+        async function changeMonthYear() {
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearInput').value;
+            
+            if (!confirm(`Switch to ${month}/${year}? Current roster will be saved.`)) return;
+            
+            try {
+                const response = await fetch('/change-month-year', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ month, year })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showSuccessMessage(data.message);
+                    loadRoster();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch(error) {
+                console.error('Error changing month/year:', error);
+                alert('Failed to change month/year');
+            }
+        }
+
+        // Employee Management
+        async function loadEmployeeManagement() {
+            const tbody = document.getElementById('employeeManagementBody');
+            tbody.innerHTML = '';
+            
+            rosterData.employees.forEach((emp, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td>${emp.name}</td>
+                    <td>${emp.emp_id}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deleteEmployee('${emp.emp_id}', '${emp.name}')">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAddEmployeeModal() {
+            document.getElementById('addEmployeeModal').style.display = 'block';
+        }
+
+        function closeAddEmployeeModal() {
+            document.getElementById('addEmployeeModal').style.display = 'none';
+            document.getElementById('addEmployeeForm').reset();
+        }
+
+        document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const empData = {
+                name: document.getElementById('newEmployeeName').value,
+                emp_id: document.getElementById('newEmployeeId').value
+            };
+            
+            try {
+                const response = await fetch('/add-employee', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(empData)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    closeAddEmployeeModal();
+                    loadRoster();
+                    showSuccessMessage('Employee added successfully!');
+                } else {
+                    showError('addEmployeeError', data.message);
+                }
+            } catch(error) {
+                showError('addEmployeeError', 'Failed to add employee');
+            }
+        });
+
+        async function deleteEmployee(empId, empName) {
+            if (!confirm(`Delete employee: ${empName}?\n\nThis will remove:\n- Employee record\n- All roster entries\n- Leave history\n- Leave applications\n\nThis cannot be undone!`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/delete-employee', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emp_id: empId })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadRoster();
+                    showSuccessMessage('Employee deleted successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch(error) {
+                alert('Failed to delete employee');
+            }
+        }
+
+        // Leave History Management
+        async function loadLeaveHistory() {
+            try {
+                const response = await fetch('/get-leave-history');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('leaveHistoryBody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.history.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No leave history found</td></tr>';
+                        return;
+                    }
+                    
+                    data.history.forEach(leave => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${leave.emp_name}</td>
+                            <td>${leave.emp_id}</td>
+                            <td>${leave.from_date}</td>
+                            <td>${leave.to_date}</td>
+                            <td>${leave.leave_type}</td>
+                            <td>
+                                <button class="btn btn-danger" onclick="deleteLeaveHistory('${leave.emp_id}', '${leave.from_date}')">Delete</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch(error) {
+                console.error('Error loading leave history:', error);
+            }
+        }
+
+        function openAddLeaveHistoryModal() {
+            const select = document.getElementById('leaveHistoryEmployee');
+            select.innerHTML = '';
+            rosterData.employees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify({id: emp.emp_id, name: emp.name});
+                option.textContent = `${emp.name} (${emp.emp_id})`;
+                select.appendChild(option);
+            });
+            
+            document.getElementById('addLeaveHistoryModal').style.display = 'block';
+        }
+
+        function closeAddLeaveHistoryModal() {
+            document.getElementById('addLeaveHistoryModal').style.display = 'none';
+            document.getElementById('addLeaveHistoryForm').reset();
+        }
+
+        document.getElementById('addLeaveHistoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const empData = JSON.parse(document.getElementById('leaveHistoryEmployee').value);
+            const leaveData = {
+                emp_id: empData.id,
+                from_date: document.getElementById('leaveHistoryFromDate').value,
+                to_date: document.getElementById('leaveHistoryToDate').value,
+                leave_type: document.getElementById('leaveHistoryType').value
+            };
+            
+            try {
+                const response = await fetch('/add-leave-history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(leaveData)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    closeAddLeaveHistoryModal();
+                    loadLeaveHistory();
+                    showSuccessMessage('Leave history added successfully!');
+                } else {
+                    showError('addLeaveHistoryError', data.message);
+                }
+            } catch(error) {
+                showError('addLeaveHistoryError', 'Failed to add leave history');
+            }
+        });
+
+        async function deleteLeaveHistory(empId, fromDate) {
+            if (!confirm('Delete this leave history entry?')) return;
+            
+            try {
+                const response = await fetch('/delete-leave-history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emp_id: empId, from_date: fromDate })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadLeaveHistory();
+                    showSuccessMessage('Leave history deleted!');
+                }
+            } catch(error) {
+                alert('Failed to delete leave history');
+            }
+        }
+
+        // Shift Count Monitoring
+        async function loadShiftCounts() {
+            try {
+                const response = await fetch('/get-all-shift-counts');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const summary = document.getElementById('shiftWarningsSummary');
+                    if (data.total_warnings === 0) {
+                        summary.innerHTML = '✅ All days have adequate staff (8 day + 8 night)';
+                        summary.style.color = '#155724';
+                    } else {
+                        summary.innerHTML = `⚠️ ${data.total_warnings} days have staff shortages!`;
+                        summary.style.color = '#721c24';
+                    }
+                    
+                    const details = document.getElementById('shiftCountDetails');
+                    if (data.warnings.length > 0) {
+                        details.innerHTML = '<h4 style="color: #856404; margin-top: 20px;">Days with Shortages:</h4>';
+                        data.warnings.forEach(warning => {
+                            const div = document.createElement('div');
+                            div.style.padding = '10px';
+                            div.style.margin = '5px 0';
+                            div.style.background = '#fff3cd';
+                            div.style.border = '1px solid #ffc107';
+                            div.style.borderRadius = '5px';
+                            div.textContent = warning.message;
+                            details.appendChild(div);
+                        });
+                    } else {
+                        details.innerHTML = '';
+                    }
+                }
+            } catch(error) {
+                console.error('Error loading shift counts:', error);
+            }
+        }
+
+        // Pull Eligibility Checker
+        async function checkPullEligibility() {
+            const dateIdx = document.getElementById('pullCheckerDate').value;
+            if (!dateIdx && dateIdx !== '0') {
+                alert('Please select a date');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/get-pullable-staff/${dateIdx}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('pullEligibilityResults');
+                    container.innerHTML = '';
+                    
+                    // Show shift counts for this day
+                    const shiftResponse = await fetch(`/check-shift-counts/${dateIdx}`);
+                    const shiftData = await shiftResponse.json();
+                    
+                    const shiftInfo = document.createElement('div');
+                    shiftInfo.className = 'info-box';
+                    shiftInfo.style.background = shiftData.status === 'warning' ? '#fff3cd' : '#d4edda';
+                    shiftInfo.style.borderLeftColor = shiftData.status === 'warning' ? '#ffc107' : '#4CAF50';
+                    shiftInfo.innerHTML = `
+                        <h4>Current Shift Status for Day ${parseInt(dateIdx) + 1}</h4>
+                        <p><strong>Day Shift:</strong> ${shiftData.day_count}/8 ${shiftData.day_count < 8 ? '⚠️' : '✅'}</p>
+                        <p><strong>Night Shift:</strong> ${shiftData.night_count}/8 ${shiftData.night_count < 8 ? '⚠️' : '✅'}</p>
+                    `;
+                    container.appendChild(shiftInfo);
+                    
+                    // Can Pull section
+                    const canPullDiv = document.createElement('div');
+                    canPullDiv.innerHTML = '<h3 style="margin-top: 30px; color: #155724;">✅ Can Be Pulled (' + data.can_pull.length + ' employees)</h3>';
+                    container.appendChild(canPullDiv);
+                    
+                    if (data.can_pull.length === 0) {
+                        canPullDiv.innerHTML += '<p style="color: #999;">No employees available to pull</p>';
+                    } else {
+                        const table = document.createElement('table');
+                        table.className = 'roster-table';
+                        table.innerHTML = `
+                            <thead>
+                                <tr>
+                                    <th>Priority</th>
+                                    <th>Employee Name</th>
+                                    <th>Current Shift</th>
+                                    <th>Previous Shift</th>
+                                    <th>Recent Pulls</th>
+                                    <th>Comp Offs Owed</th>
+                                    <th>Recommendation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                        `;
+                        
+                        data.can_pull.forEach(emp => {
+                            const tr = document.createElement('tr');
+                            const recColor = emp.recommendation === 'Good candidate' ? '#4CAF50' : '#ff9800';
+                            tr.innerHTML = `
+                                <td><strong>${emp.priority}</strong></td>
+                                <td>${emp.name}</td>
+                                <td>${emp.current_shift}</td>
+                                <td>${emp.previous_shift}</td>
+                                <td>${emp.recent_pulls}</td>
+                                <td>${emp.comp_offs_owed}</td>
+                                <td style="color: ${recColor}; font-weight: 600;">${emp.recommendation}</td>
+                            `;
+                            table.querySelector('tbody').appendChild(tr);
+                        });
+                        
+                        canPullDiv.appendChild(table);
+                    }
+                    
+                    // Cannot Pull section
+                    const cannotPullDiv = document.createElement('div');
+                    cannotPullDiv.innerHTML = '<h3 style="margin-top: 30px; color: #721c24;">❌ Cannot Be Pulled (' + data.cannot_pull.length + ' employees)</h3>';
+                    container.appendChild(cannotPullDiv);
+                    
+                    if (data.cannot_pull.length === 0) {
+                        cannotPullDiv.innerHTML += '<p style="color: #999;">All employees are available</p>';
+                    } else {
+                        const table = document.createElement('table');
+                        table.className = 'roster-table';
+                        table.innerHTML = `
+                            <thead>
+                                <tr>
+                                    <th>Employee Name</th>
+                                    <th>Current Shift</th>
+                                    <th>Previous Shift</th>
+                                    <th>Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                        `;
+                        
+                        data.cannot_pull.forEach(emp => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${emp.name}</td>
+                                <td>${emp.current_shift}</td>
+                                <td>${emp.previous_shift || '-'}</td>
+                                <td style="color: #721c24;">${emp.reason}</td>
+                            `;
+                            table.querySelector('tbody').appendChild(tr);
+                        });
+                        
+                        cannotPullDiv.appendChild(table);
+                    }
+                }
+            } catch(error) {
+                console.error('Error checking pull eligibility:', error);
+                alert('Failed to check pull eligibility');
+            }
+        }
     </script>
 </body>
 </html>

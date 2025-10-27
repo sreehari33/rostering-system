@@ -688,6 +688,344 @@ def download_excel():
     generate_excel(data)
     return send_file(EXCEL_FILE, as_attachment=True, download_name=f'roster_{data["month"]}_{data["year"]}.xlsx')
 
+@app.route('/add-employee', methods=['POST'])
+def add_employee():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    emp_data = request.json
+    data = load_data()
+    
+    # Check if employee ID already exists
+    for emp in data['employees']:
+        if emp['emp_id'] == emp_data['emp_id']:
+            return jsonify({'success': False, 'message': 'Employee ID already exists'})
+    
+    # Add employee
+    new_employee = {
+        'name': emp_data['name'],
+        'emp_id': emp_data['emp_id']
+    }
+    data['employees'].append(new_employee)
+    
+    # Initialize roster for this employee with base pattern
+    days_in_month = 31
+    emp_roster = []
+    start_offset = len(data['employees']) % len(BASE_PATTERN)
+    
+    for day in range(days_in_month):
+        pattern_idx = (start_offset + day) % len(BASE_PATTERN)
+        shift = BASE_PATTERN[pattern_idx]
+        emp_roster.append(shift)
+    
+    data['roster'][emp_data['emp_id']] = emp_roster
+    
+    save_data(data)
+    generate_excel(data)
+    return jsonify({'success': True, 'message': 'Employee added successfully'})
+
+@app.route('/delete-employee', methods=['POST'])
+def delete_employee():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    emp_id = request.json.get('emp_id')
+    data = load_data()
+    
+    # Remove employee from list
+    data['employees'] = [emp for emp in data['employees'] if emp['emp_id'] != emp_id]
+    
+    # Remove from roster
+    if emp_id in data['roster']:
+        del data['roster'][emp_id]
+    
+    # Remove from leave history
+    if 'leave_history' in data and emp_id in data['leave_history']:
+        del data['leave_history'][emp_id]
+    
+    # Remove from pulled staff
+    if 'pulled_staff' in data and emp_id in data['pulled_staff']:
+        del data['pulled_staff'][emp_id]
+    
+    # Remove from compensatory offs
+    if 'compensatory_offs' in data and emp_id in data['compensatory_offs']:
+        del data['compensatory_offs'][emp_id]
+    
+    # Remove leave applications
+    data['leave_applications'] = [leave for leave in data['leave_applications'] 
+                                   if leave['emp_id'] != emp_id]
+    
+    save_data(data)
+    generate_excel(data)
+    return jsonify({'success': True, 'message': 'Employee deleted successfully'})
+
+@app.route('/get-leave-history')
+def get_leave_history():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    data = load_data()
+    leave_history = data.get('leave_history', {})
+    
+    # Format for display
+    formatted_history = []
+    for emp_id, history in leave_history.items():
+        emp_name = next((emp['name'] for emp in data['employees'] if emp['emp_id'] == emp_id), 'Unknown')
+        for leave in history:
+            formatted_history.append({
+                'emp_id': emp_id,
+                'emp_name': emp_name,
+                'from_date': leave['from'],
+                'to_date': leave['to'],
+                'leave_type': leave['type']
+            })
+    
+    return jsonify({'success': True, 'history': formatted_history})
+
+@app.route('/add-leave-history', methods=['POST'])
+def add_leave_history():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    leave_data = request.json
+    data = load_data()
+    
+    if 'leave_history' not in data:
+        data['leave_history'] = {}
+    
+    emp_id = leave_data['emp_id']
+    if emp_id not in data['leave_history']:
+        data['leave_history'][emp_id] = []
+    
+    data['leave_history'][emp_id].append({
+        'from': leave_data['from_date'],
+        'to': leave_data['to_date'],
+        'type': leave_data['leave_type']
+    })
+    
+    save_data(data)
+    return jsonify({'success': True, 'message': 'Leave history added successfully'})
+
+@app.route('/delete-leave-history', methods=['POST'])
+def delete_leave_history():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    req_data = request.json
+    data = load_data()
+    
+    emp_id = req_data['emp_id']
+    from_date = req_data['from_date']
+    
+    if 'leave_history' in data and emp_id in data['leave_history']:
+        data['leave_history'][emp_id] = [
+            leave for leave in data['leave_history'][emp_id]
+            if leave['from'] != from_date
+        ]
+    
+    save_data(data)
+    return jsonify({'success': True, 'message': 'Leave history deleted successfully'})
+
+@app.route('/check-shift-counts/<int:date_idx>')
+def check_shift_counts(date_idx):
+    data = load_data()
+    day_count, night_count = count_shifts_by_type(date_idx, data)
+    
+    status = 'ok'
+    message = f'Day: {day_count}/8, Night: {night_count}/8'
+    
+    if day_count < 8 or night_count < 8:
+        status = 'warning'
+        message = f'⚠️ Shortage! Day: {day_count}/8, Night: {night_count}/8'
+    elif day_count > 8 or night_count > 8:
+        status = 'info'
+        message = f'ℹ️ Excess! Day: {day_count}/8, Night: {night_count}/8'
+    
+    return jsonify({
+        'success': True,
+        'day_count': day_count,
+        'night_count': night_count,
+        'status': status,
+        'message': message,
+        'day_required': 8,
+        'night_required': 8
+    })
+
+@app.route('/get-pullable-staff/<int:date_idx>')
+def get_pullable_staff(date_idx):
+    data = load_data()
+    roster = data['roster']
+    employees = data['employees']
+    
+    can_pull = []
+    cannot_pull = []
+    
+    for emp in employees:
+        emp_id = emp['emp_id']
+        
+        if date_idx < len(roster[emp_id]):
+            current_shift = roster[emp_id][date_idx]
+            current_type = get_shift_type(current_shift)
+            
+            # Check if already working
+            if current_type in ['day', 'night']:
+                cannot_pull.append({
+                    'emp_id': emp_id,
+                    'name': emp['name'],
+                    'current_shift': current_shift,
+                    'reason': 'Already scheduled to work'
+                })
+                continue
+            
+            # Check if on leave
+            if current_type == 'leave':
+                cannot_pull.append({
+                    'emp_id': emp_id,
+                    'name': emp['name'],
+                    'current_shift': current_shift,
+                    'reason': 'On approved leave'
+                })
+                continue
+            
+            # Check previous day
+            if date_idx > 0:
+                prev_shift = roster[emp_id][date_idx - 1]
+                prev_type = get_shift_type(prev_shift)
+                
+                if prev_type == 'night':
+                    cannot_pull.append({
+                        'emp_id': emp_id,
+                        'name': emp['name'],
+                        'current_shift': current_shift,
+                        'previous_shift': prev_shift,
+                        'reason': 'Had night shift previous day (rest required)'
+                    })
+                    continue
+                
+                # Can be pulled
+                if current_type == 'off':
+                    priority = calculate_pull_priority(emp_id, date_idx, data)
+                    recent_pulls = len(data.get('pulled_staff', {}).get(emp_id, []))
+                    comp_offs = data.get('compensatory_offs', {}).get(emp_id, 0)
+                    
+                    can_pull.append({
+                        'emp_id': emp_id,
+                        'name': emp['name'],
+                        'current_shift': current_shift,
+                        'previous_shift': prev_shift,
+                        'priority': priority,
+                        'recent_pulls': recent_pulls,
+                        'comp_offs_owed': comp_offs,
+                        'recommendation': 'Good candidate' if priority < 20 else 'Recently pulled'
+                    })
+    
+    # Sort can_pull by priority (lower is better to pull)
+    can_pull.sort(key=lambda x: x['priority'])
+    
+    return jsonify({
+        'success': True,
+        'can_pull': can_pull,
+        'cannot_pull': cannot_pull,
+        'date_idx': date_idx
+    })
+
+@app.route('/change-month-year', methods=['POST'])
+def change_month_year():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    req_data = request.json
+    new_month = int(req_data['month'])
+    new_year = int(req_data['year'])
+    
+    data = load_data()
+    
+    # Save current roster if needed
+    old_key = f"{data['year']}_{data['month']}"
+    if 'archived_rosters' not in data:
+        data['archived_rosters'] = {}
+    
+    data['archived_rosters'][old_key] = {
+        'roster': data['roster'].copy(),
+        'leave_applications': data['leave_applications'].copy(),
+        'month': data['month'],
+        'year': data['year']
+    }
+    
+    # Update month and year
+    data['month'] = new_month
+    data['year'] = new_year
+    
+    # Check if we have an archived roster for this month
+    new_key = f"{new_year}_{new_month}"
+    if new_key in data['archived_rosters']:
+        # Restore archived roster
+        data['roster'] = data['archived_rosters'][new_key]['roster']
+        data['leave_applications'] = data['archived_rosters'][new_key]['leave_applications']
+    else:
+        # Generate new roster for this month
+        days_in_month = 31
+        roster = {}
+        
+        for idx, emp in enumerate(data['employees']):
+            emp_roster = []
+            start_offset = idx % len(BASE_PATTERN)
+            
+            for day in range(days_in_month):
+                pattern_idx = (start_offset + day) % len(BASE_PATTERN)
+                shift = BASE_PATTERN[pattern_idx]
+                emp_roster.append(shift)
+            
+            roster[emp['emp_id']] = emp_roster
+        
+        data['roster'] = roster
+        data['leave_applications'] = []
+        data['pulled_staff'] = {}
+        data['compensatory_offs'] = {}
+    
+    save_data(data)
+    generate_excel(data)
+    
+    return jsonify({
+        'success': True,
+        'message': f'Switched to {new_month}/{new_year}',
+        'month': new_month,
+        'year': new_year
+    })
+
+@app.route('/get-all-shift-counts')
+def get_all_shift_counts():
+    data = load_data()
+    days_in_month = 31
+    
+    counts = []
+    warnings = []
+    
+    for day_idx in range(days_in_month):
+        day_count, night_count = count_shifts_by_type(day_idx, data)
+        
+        status = 'ok'
+        if day_count < 8 or night_count < 8:
+            status = 'warning'
+            warnings.append({
+                'day': day_idx + 1,
+                'message': f'Day {day_idx + 1}: Shortage - Day: {day_count}/8, Night: {night_count}/8'
+            })
+        
+        counts.append({
+            'day': day_idx + 1,
+            'day_count': day_count,
+            'night_count': night_count,
+            'status': status
+        })
+    
+    return jsonify({
+        'success': True,
+        'counts': counts,
+        'warnings': warnings,
+        'total_warnings': len(warnings)
+    })
+
 if __name__ == '__main__':
     initialize_data()
     data = load_data()
